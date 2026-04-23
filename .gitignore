@@ -1,0 +1,39 @@
+# Node
+node_modules/
+dist/
+.pnpm-debug.log
+pnpm-lock.yaml
+package-lock.json
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.env
+.python-version
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# IDEs
+.vscode/
+.idea/
+.claude/
+.gemini/
+
+# Project specific
+recovered-code/
+scratch/
+*.csv
+!100_questions_import.csv
+*.sql
+*.log

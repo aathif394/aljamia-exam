@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Al Jamia Examination System — Tester Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 13px;
+    color: #1a1a2e;
+    background: #fff;
+    line-height: 1.6;
+  }
+
+  /* ---------- COVER ---------- */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 80px 80px;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #fff;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: 200px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.03);
+  }
+  .cover-badge {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #a78bfa;
+    margin-bottom: 24px;
+  }
+  .cover h1 {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    max-width: 700px;
+  }
+  .cover h1 span { color: #a78bfa; }
+  .cover-sub {
+    font-size: 18px;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 60px;
+    max-width: 520px;
+    line-height: 1.5;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 48px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding-top: 32px;
+    width: 100%;
+    max-width: 600px;
+  }
+  .cover-meta-item label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+  }
+  .cover-meta-item span {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+  }
+
+  /* ---------- LAYOUT ---------- */
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 56px 64px;
+  }
+
+  /* ---------- TABLE OF CONTENTS ---------- */
+  .toc-page {
+    page-break-after: always;
+  }
+  .toc-page h2 { margin-bottom: 32px; }
+  .toc-list { list-style: none; }
+  .toc-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed #e5e7eb;
+    font-size: 13px;
+  }
+  .toc-list li:last-child { border-bottom: none; }
+  .toc-list li .toc-part {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #7c3aed;
+    margin-right: 12px;
+    min-width: 64px;
+  }
+  .toc-list li .toc-title { color: #1a1a2e; flex: 1; }
+  .toc-list li .toc-sub {
+    font-size: 11px;
+    color: #6b7280;
+    margin-left: 8px;
+  }
+
+  /* ---------- SECTION HEADERS ---------- */
+  h1 { font-size: 28px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+  h2 { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+  h3 { font-size: 14px; font-weight: 600; color: #1a1a2e; margin-bottom: 12px; margin-top: 28px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #f3f4f6;
+  }
+  .section-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .badge-admin { background: #ede9fe; color: #7c3aed; }
+  .badge-student { background: #dcfce7; color: #16a34a; }
+  .badge-edge { background: #fff7ed; color: #ea580c; }
+  .badge-inv { background: #e0f2fe; color: #0369a1; }
+
+  .part-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .part-label.admin { color: #7c3aed; }
+  .part-label.student { color: #16a34a; }
+  .part-label.edge { color: #ea580c; }
+  .part-label.inv { color: #0369a1; }
+
+  /* ---------- CALLOUT ---------- */
+  .callout {
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 20px 0;
+    font-size: 12.5px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout.info { background: #eff6ff; border-left: 4px solid #3b82f6; color: #1e40af; }
+  .callout.warn { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e; }
+  .callout.tip { background: #f0fdf4; border-left: 4px solid #22c55e; color: #166534; }
+  .callout p { margin: 0; }
+  .callout strong { font-weight: 600; }
+
+  /* ---------- TABLES ---------- */
+  .table-wrapper { overflow-x: auto; margin: 16px 0 28px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  thead th {
+    background: #f8f7ff;
+    color: #4b5563;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  tbody tr { border-bottom: 1px solid #f3f4f6; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafafa; }
+  tbody td { padding: 10px 12px; vertical-align: top; }
+  td:first-child { font-weight: 600; color: #6b7280; width: 44px; }
+  .step-col { color: #1a1a2e; }
+  .expected-col { color: #374151; }
+  .pf-col { width: 70px; text-align: center; }
+  .pf-box {
+    display: inline-block;
+    width: 48px; height: 20px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 4px;
+  }
+
+  /* ---------- BUG REPORT BOX ---------- */
+  .bug-report {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+  .bug-report ol {
+    margin: 10px 0 0 18px;
+    color: #374151;
+    line-height: 2;
+  }
+
+  /* ---------- CHECKLIST ---------- */
+  .checklist { list-style: none; column-count: 2; column-gap: 32px; margin: 16px 0; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    break-inside: avoid;
+    font-size: 12.5px;
+    color: #374151;
+  }
+  .checklist li .check-box {
+    width: 16px; height: 16px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ---------- CREDENTIALS BOX ---------- */
+  .creds-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .cred-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .cred-card h4 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b7280;
+    margin-bottom: 10px;
+  }
+  .cred-card .cred-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+  }
+  .cred-card .cred-row:last-child { border-bottom: none; }
+  .cred-card .cred-row label { color: #9ca3af; }
+  .cred-card .cred-row span { font-weight: 500; font-family: monospace; }
+
+  /* ---------- PAGE BREAK ---------- */
+  .page-break { page-break-before: always; }
+
+  /* ---------- FOOTER ---------- */
+  .doc-footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 11px;
+    color: #9ca3af;
+  }
+
+  /* ---------- PRINT ---------- */
+  @media print {
+    body { font-size: 12px; }
+    .cover { min-height: 100vh; }
+    .page { padding: 40px 50px; }
+    .checklist { column-count: 2; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== COVER ===================== -->
+<div class="cover">
+  <div class="cover-badge">Quality Assurance · UAT-1</div>
+  <h1>Al Jamia Examination<br/><span>Tester Guide</span></h1>
+  <p class="cover-sub">End-to-end testing requirements and test cases for the Admin and Student roles of the Al Jamia online admission examination platform.</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <label>Version</label>
+      <span>UAT-1</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Date</label>
+      <span>April 2026</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Prepared for</label>
+      <span>External QA Testers</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== OVERVIEW ===================== -->
+<div class="page">
+  <h2>Overview</h2>
+  <p style="color:#374151; margin: 10px 0 20px; max-width: 700px; line-height:1.8;">
+    The Al Jamia Examination System is a real-time, proctored online admission examination platform. It handles large numbers of concurrent students across multiple exam centres. This document defines what to test, how to test it, and what a pass or fail looks like for each feature.
+  </p>
+
+  <div class="creds-grid">
+    <div class="cred-card">
+      <h4>Admin Role</h4>
+      <div class="cred-row"><label>Login URL</label><span>/admin</span></div>
+      <div class="cred-row"><label>Credentials</label><span>Provided separately</span></div>
+      <div class="cred-row"><label>Session length</label><span>8 hours</span></div>
+    </div>
+    <div class="cred-card">
+      <h4>Student Role</h4>
+      <div class="cred-row"><label>Login URL</label><span>/ (root)</span></div>
+      <div class="cred-row"><label>Roll number</label><span>Student phone number</span></div>
+      <div class="cred-row"><label>Password format</label><span>DDMMYYYY + last 4 of phone</span></div>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <span class="callout-icon">⚠️</span>
+    <p><strong>Important:</strong> Use a separate browser or incognito window for each role. Do not mix admin and student sessions in the same browser profile. Use <strong>Test Mode</strong> (Config tab) to bypass exam schedule restrictions during testing.</p>
+  </div>
+
+  <h3>What You Need</h3>
+  <table>
+    <thead><tr><th>Item</th><th>Details</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="step-col">Admin credentials</td><td class="expected-col">Will be provided separately</td></tr>
+      <tr><td>2</td><td class="step-col">Two devices or browser profiles</td><td class="expected-col">One for admin, one for student — do not mix sessions</td></tr>
+      <tr><td>3</td><td class="step-col">Desktop or laptop browser</td><td class="expected-col">Chrome or Firefox (latest). Do not use mobile for the exam</td></tr>
+      <tr><td>4</td><td class="step-col">Sample Excel file for import</td><td class="expected-col">Will be provided separately</td></tr>
+      <tr><td>5</td><td class="step-col">Stable internet connection</td><td class="expected-col">Required for real-time WebSocket monitoring features</td></tr>
+    </tbody>
+  </table>
+
+  <h3>How to Report Bugs</h3>
+  <div class="bug-report">
+    <p style="font-weight:600; font-size:13px; color:#1a1a2e;">For every bug found, include:</p>
+    <ol>
+      <li>Steps to reproduce (numbered, exact)</li>
+      <li>Expected result</li>
+      <li>Actual result</li>
+      <li>Screenshot or screen recording</li>
+      <li>Browser name and version, and OS</li>
+      <li>Role at the time — Admin / Student / Invigilator</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===================== PART 1: ADMIN ===================== -->
+<div class="page page-break">
+  <div class="part-label admin">Part 1 — Admin Testing</div>
+  <div class="section-header">
+    <div class="section-badge badge-admin">A</div>
+    <div>
+      <h2>Admin End-to-End</h2>
+      <p style="color:#6b7280; font-size:12px;">Login URL: <code>/admin</code></p>
+    </div>
+  </div>
+
+  <!-- A1 -->
+  <h3>A1 — Admin Login</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>A1.1</td><td class="step-col">Go to <code>/admin</code></td><td class="expected-col">Admin login form appears with username and password fields</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A1.2</td><td class="step-col">Submit with empty fields</td><td class="expected-col">Validation error shown; no login occurs</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A1.3</td><td class="step-col">Submit with wrong password</td><td class="expected-col">Error message shown ("Invalid credentials" or similar)</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A1.4</td><td class="step-col">Submit with correct credentials</td><td class="expected-col">Redirected to admin dashboard</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A1.5</td><td class="step-col">Reload the page after login</td><td class="expected-col">Still logged in — session persists</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A1.6</td><td class="step-col">Log out (if logout button exists)</td><td class="expected-col">Redirected back to login; dashboard inaccessible</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- A2 -->
+  <h3>A2 — Exam Configuration (Config Tab)</h3>
+  <div class="callout tip">
+    <span class="callout-icon">✅</span>
+    <p><strong>Enable Test Mode first.</strong> This bypasses the exam schedule so you are not blocked by time restrictions during testing.</p>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>A2.1</td><td class="step-col">Open the Config tab</td><td class="expected-col">Shows fields: exam start time, duration, IP restriction toggle, IP ranges, test mode toggle</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A2.2</td><td class="step-col">Enable Test Mode and save</td><td class="expected-col">Toggle turns on; save succeeds</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A2.3</td><td class="step-col">Set exam duration to 60 minutes and save</td><td class="expected-col">Saves successfully; value persists on reload</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A2.4</td><td class="step-col">Set exam start time to a future date/time</td><td class="expected-col">Saves successfully</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A2.5</td><td class="step-col">Toggle IP restriction ON; enter a CIDR range (e.g. <code>192.168.1.0/24</code>)</td><td class="expected-col">Saves successfully</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A2.6</td><td class="step-col">Toggle IP restriction OFF and save</td><td class="expected-col">Saves; IP field greys out or becomes irrelevant</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- A3 -->
+  <h3>A3 — Centre Management (Centres Tab)</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>A3.1</td><td class="step-col">Open the Centres tab</td><td class="expected-col">Shows list of existing centres (or an empty state)</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A3.2</td><td class="step-col">Create a new centre with English name, Arabic name, and a WiFi SSID</td><td class="expected-col">Centre appears in the list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A3.3</td><td class="step-col">Edit the centre — change the English name</td><td class="expected-col">Change reflected in the list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A3.4</td><td class="step-col">Add IP ranges to the centre</td><td class="expected-col">Saves successfully</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A3.5</td><td class="step-col">Delete the centre</td><td class="expected-col">Centre removed from list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A3.6</td><td class="step-col">Create at least two centres for later use</td><td class="expected-col">Both appear in the list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- A4 -->
+  <h3>A4 — Student Import (Import Tab)</h3>
+  <div class="callout info">
+    <span class="callout-icon">ℹ️</span>
+    <p><strong>Excel format:</strong> The file must have columns for student name, phone number, date of birth, and centre. A sample file is provided separately.</p>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>A4.1</td><td class="step-col">Open the Import tab</td><td class="expected-col">Shows file upload area and instructions</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A4.2</td><td class="step-col">Upload the valid test Excel file</td><td class="expected-col">Students parsed and shown in a preview table before import</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A4.3</td><td class="step-col">Confirm the import</td><td class="expected-col">Students saved; success message shown with count</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A4.4</td><td class="step-col">Check that roll numbers are generated (phone number)</td><td class="expected-col">Roll numbers visible in preview or success message</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A4.5</td><td class="step-col">Upload the same file again</td><td class="expected-col">Blocks duplicates or shows a warning message</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A4.6</td><td class="step-col">Upload an invalid or empty Excel file</td><td class="expected-col">Error shown; no students imported</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A4.7</td><td class="step-col">Check Paper Set distribution after import</td><td class="expected-col">Students roughly 50/50 split between Set A and Set B</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- A5, A6, A7 -->
+<div class="page page-break">
+  <div class="part-label admin">Part 1 — Admin Testing (continued)</div>
+
+  <!-- A5 -->
+  <h3>A5 — Question Management (Questions Tab)</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>A5.1</td><td class="step-col">Open the Questions tab</td><td class="expected-col">Shows question list with filters by paper set, section, stream</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A5.2</td><td class="step-col">Create a new question: text, 4 options, mark correct option, assign Paper Set A, Section 1</td><td class="expected-col">Question appears in the list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A5.3</td><td class="step-col">Edit the question — change the question text</td><td class="expected-col">Updated text shown in list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A5.4</td><td class="step-col">Create a second question for Paper Set B</td><td class="expected-col">Appears under Set B</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A5.5</td><td class="step-col">Delete a question</td><td class="expected-col">Removed from list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A5.6</td><td class="step-col">Use the bulk JSON import with the provided sample JSON</td><td class="expected-col">Questions imported; count confirmed</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A5.7</td><td class="step-col">(Optional) Upload a photo of printed MCQ questions to the OCR tool</td><td class="expected-col">System extracts text; review parsed output for accuracy</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- A6 -->
+  <h3>A6 — Live Monitoring (Monitor Tab)</h3>
+  <div class="callout warn">
+    <span class="callout-icon">👥</span>
+    <p><strong>Coordinate with another tester.</strong> This section requires a student session to be running simultaneously. Use a second browser profile or a second device.</p>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>A6.1</td><td class="step-col">Open the Monitor tab</td><td class="expected-col">Dashboard loads; shows student grid or list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.2</td><td class="step-col">Student logs in and starts exam in second browser</td><td class="expected-col">Student appears in grid with status "active" — no page refresh needed</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.3</td><td class="step-col">Student answers a question</td><td class="expected-col">Answer count updates in real time</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.4</td><td class="step-col">Student navigates between questions</td><td class="expected-col">"Viewing Q3" or similar indicator updates live on admin side</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.5</td><td class="step-col">Toggle between Grid and List view</td><td class="expected-col">Both views show correct data</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.6</td><td class="step-col">Filter by centre</td><td class="expected-col">Only students from that centre shown</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.7</td><td class="step-col">Filter by status (active, pending, submitted)</td><td class="expected-col">Correctly filters the list</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.8</td><td class="step-col">Click on a student card to open the Student Detail Modal</td><td class="expected-col">Modal opens with student info, answer timeline, strike log</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.9</td><td class="step-col">From the modal, retrieve the student's password</td><td class="expected-col">Password displayed</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.10</td><td class="step-col">Trigger a strike from the student session (e.g. exit fullscreen)</td><td class="expected-col">Strike count increments in real time on admin dashboard</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A6.11</td><td class="step-col">Student submits the exam</td><td class="expected-col">Status changes to "submitted" in real time</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- A7 -->
+  <h3>A7 — Results (Results Tab)</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>A7.1</td><td class="step-col">Open Results tab after at least one student has submitted</td><td class="expected-col">Leaderboard shows submitted students with scores</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A7.2</td><td class="step-col">Sort by score (ascending and descending)</td><td class="expected-col">List reorders correctly</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A7.3</td><td class="step-col">Search or filter by student name or roll number</td><td class="expected-col">Matching students shown</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A7.4</td><td class="step-col">Check score band distribution chart</td><td class="expected-col">Students counted correctly in bands: 0–29, 30–49, 50–69, 70–89, 90–100</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A7.5</td><td class="step-col">Click Export CSV</td><td class="expected-col">CSV file downloads</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>A7.6</td><td class="step-col">Open the CSV in Excel</td><td class="expected-col">Has expected columns: name, roll number, score, etc. Data matches dashboard</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== PART 2: STUDENT ===================== -->
+<div class="page page-break">
+  <div class="part-label student">Part 2 — Student Testing</div>
+  <div class="section-header">
+    <div class="section-badge badge-student">S</div>
+    <div>
+      <h2>Student End-to-End</h2>
+      <p style="color:#6b7280; font-size:12px;">Login URL: <code>/</code> (root) &nbsp;·&nbsp; Use a separate browser or incognito window from your admin session</p>
+    </div>
+  </div>
+
+  <!-- S1 -->
+  <h3>S1 — Student Login</h3>
+  <div class="callout info">
+    <span class="callout-icon">🔑</span>
+    <p><strong>Password format:</strong> <code>DDMMYYYY</code> + last 4 digits of phone number. Example — born 15 March 2005, phone ending 7890 → password is <code>150320057890</code>.</p>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>S1.1</td><td class="step-col">Go to <code>/</code></td><td class="expected-col">Student login page loads with exam countdown or "exam is open" banner</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S1.2</td><td class="step-col">Submit with empty fields</td><td class="expected-col">Validation error shown</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S1.3</td><td class="step-col">Submit with wrong roll number or password</td><td class="expected-col">Error message shown</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S1.4</td><td class="step-col">Submit with correct credentials</td><td class="expected-col">Navigated to the exam page</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S1.5</td><td class="step-col">Login before exam start time (with Test Mode OFF)</td><td class="expected-col">Blocked with "exam not started" or similar message</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S1.6</td><td class="step-col">Login with Test Mode ON (any time)</td><td class="expected-col">Login succeeds regardless of scheduled time</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- S2 -->
+  <h3>S2 — Exam Start and Question Display</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>S2.1</td><td class="step-col">After login, exam page loads</td><td class="expected-col">First question displayed; countdown timer visible</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S2.2</td><td class="step-col">Verify the question has 4 answer options</td><td class="expected-col">All 4 options rendered</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S2.3</td><td class="step-col">Verify the UI is in the correct language</td><td class="expected-col">Correct text direction: LTR for English, RTL for Arabic</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S2.4</td><td class="step-col">Check that fullscreen mode is enforced on start</td><td class="expected-col">Browser enters fullscreen automatically</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S2.5</td><td class="step-col">Right-click on the exam page</td><td class="expected-col">Context menu does not appear</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S2.6</td><td class="step-col">Select question text and press Ctrl+C</td><td class="expected-col">Content not copied to clipboard (silently blocked)</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S2.7</td><td class="step-col">Compare question order with a second student on the same paper set</td><td class="expected-col">Questions appear in a different order for each student</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S2.8</td><td class="step-col">Compare answer option order for the same question across two students</td><td class="expected-col">Options appear in a different order for each student</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- S3 -->
+  <h3>S3 — Answering Questions</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>S3.1</td><td class="step-col">Select an answer option</td><td class="expected-col">Option highlights visually</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S3.2</td><td class="step-col">Navigate to the next question</td><td class="expected-col">Next question shown; previous answer retained</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S3.3</td><td class="step-col">Navigate back to a previous question</td><td class="expected-col">Previous question shown with saved answer still selected</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S3.4</td><td class="step-col">Change a previously selected answer</td><td class="expected-col">New answer selected; saves correctly</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S3.5</td><td class="step-col">Skip a question (navigate without selecting)</td><td class="expected-col">No answer saved; can return later</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S3.6</td><td class="step-col">Reload the page mid-exam</td><td class="expected-col">Exam resumes; previously saved answers still selected</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S3.7</td><td class="step-col">Disconnect internet for 5–10 seconds then reconnect</td><td class="expected-col">Exam continues; no data lost</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- S4, S5, S6, S7 -->
+<div class="page page-break">
+  <div class="part-label student">Part 2 — Student Testing (continued)</div>
+
+  <!-- S4 -->
+  <h3>S4 — Anti-Cheat / Proctoring</h3>
+  <div class="callout warn">
+    <span class="callout-icon">⚠️</span>
+    <p><strong>Coordinate with the admin tester.</strong> Each action below should cause a strike to appear on the admin Monitor tab in real time. After <strong>3 strikes</strong>, the exam auto-submits. Start a fresh student session for this section so you begin at 0 strikes.</p>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>S4.1</td><td class="step-col">Exit fullscreen (press Escape or F11)</td><td class="expected-col">Warning shown to student; strike count +1; admin sees it in real time</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S4.2</td><td class="step-col">Switch to another browser tab, then return</td><td class="expected-col">Strike triggered on return</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S4.3</td><td class="step-col">Click outside the browser window (window blur)</td><td class="expected-col">Strike triggered</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S4.4</td><td class="step-col">Press F12</td><td class="expected-col">Key blocked; strike triggered</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S4.5</td><td class="step-col">Press Ctrl+T (new tab shortcut)</td><td class="expected-col">Key blocked; strike triggered</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S4.6</td><td class="step-col">Accumulate exactly 3 strikes</td><td class="expected-col">Exam auto-submits; student sees submission confirmation page</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S4.7</td><td class="step-col">On admin Monitor tab, verify the flagged student</td><td class="expected-col">Student card shows "flagged" status</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- S5 -->
+  <h3>S5 — Exam Timer</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>S5.1</td><td class="step-col">Verify the countdown timer is visible and counting down</td><td class="expected-col">Timer decrements every second</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S5.2</td><td class="step-col">Set duration to 2 minutes in Config; start a student exam; wait</td><td class="expected-col">Timer counts down to zero</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S5.3</td><td class="step-col">Allow the timer to reach zero without submitting</td><td class="expected-col">Exam auto-submits; student navigated to <code>/submitted</code></td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- S6 -->
+  <h3>S6 — Manual Submission</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>S6.1</td><td class="step-col">Answer some questions then click Submit</td><td class="expected-col">Confirmation prompt appears ("are you sure?")</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S6.2</td><td class="step-col">Cancel on the confirmation prompt</td><td class="expected-col">Returned to exam; no submission</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S6.3</td><td class="step-col">Submit again and confirm</td><td class="expected-col">Navigated to <code>/submitted</code> confirmation page</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S6.4</td><td class="step-col">Try to navigate back to <code>/exam</code> after submission</td><td class="expected-col">Blocked; redirected to <code>/submitted</code> or login</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S6.5</td><td class="step-col">Try logging in again with the same student credentials after submission</td><td class="expected-col">Blocked with "already submitted" message</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- S7 -->
+  <h3>S7 — Post-Exam Score Verification</h3>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>S7.1</td><td class="step-col">Submission confirmation page (<code>/submitted</code>) loads</td><td class="expected-col">Clear confirmation message displayed; no score shown to student</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S7.2</td><td class="step-col">On admin Results tab, find the submitted student</td><td class="expected-col">Score calculated and shown</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>S7.3</td><td class="step-col">Verify the score matches the answers selected during the exam</td><td class="expected-col">Correct answers match questions in the Questions tab</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== PART 3: EDGE CASES ===================== -->
+<div class="page page-break">
+  <div class="part-label edge">Part 3 — Edge Cases &amp; Stress Tests</div>
+  <div class="section-header">
+    <div class="section-badge badge-edge">E</div>
+    <div>
+      <h2>Edge Cases &amp; Stress Tests</h2>
+      <p style="color:#6b7280; font-size:12px;">Run these after the main flows pass</p>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Scenario</th><th>Steps</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>E1</td><td class="step-col">Concurrent students</td><td class="expected-col">Log in with 3–5 different student accounts simultaneously</td><td class="expected-col">All sessions work independently; admin Monitor shows all students active</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E2</td><td class="step-col">Network drop during answer save</td><td class="expected-col">Submit an answer then disconnect network for 3 seconds, reconnect</td><td class="expected-col">Answer is saved (auto-retry) or UI shows an error and retries</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E3</td><td class="step-col">Long inactivity</td><td class="expected-col">Leave the exam page open without interaction for 10 minutes</td><td class="expected-col">Session remains valid; exam continues</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E4</td><td class="step-col">Admin resets a student mid-exam</td><td class="expected-col">Admin opens Student Detail Modal and resets the student while active</td><td class="expected-col">Student returned to "pending"; must log in again</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E5</td><td class="step-col">Admin deletes a student mid-exam</td><td class="expected-col">Admin deletes a student while their exam is active</td><td class="expected-col">Student session ends or is invalidated gracefully</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E6</td><td class="step-col">Duplicate phone numbers in import</td><td class="expected-col">Upload Excel with two rows sharing the same phone number</td><td class="expected-col">Duplicates rejected or warning shown; no corrupt data</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E7</td><td class="step-col">Arabic question text</td><td class="expected-col">Create a question with Arabic text and options</td><td class="expected-col">Displayed correctly in RTL on the student exam page</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E8</td><td class="step-col">OCR question extraction</td><td class="expected-col">Upload a clear photo of a printed MCQ question to the OCR tool</td><td class="expected-col">System extracts recognisable text; admin can review before saving</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E9</td><td class="step-col">CSV with special characters</td><td class="expected-col">Submit a student with Arabic or special characters in name; export CSV</td><td class="expected-col">CSV opens correctly in Excel without corruption</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>E10</td><td class="step-col">IP restriction enforcement</td><td class="expected-col">Enable IP restriction with a non-matching CIDR; attempt student login</td><td class="expected-col">Student blocked with network/centre restriction message</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Part 4: Invigilator -->
+  <div class="part-label inv" style="margin-top: 40px;">Part 4 — Invigilator Role</div>
+  <div class="section-header">
+    <div class="section-badge badge-inv">I</div>
+    <div>
+      <h2>Invigilator Access (If Testing)</h2>
+      <p style="color:#6b7280; font-size:12px;">The invigilator role has a restricted view of the admin dashboard</p>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>#</th><th>Step</th><th>Expected Result</th><th class="pf-col">Pass/Fail</th></tr></thead>
+      <tbody>
+        <tr><td>I1</td><td class="step-col">Log in at <code>/admin</code> with invigilator credentials</td><td class="expected-col">Redirected to dashboard</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>I2</td><td class="step-col">Verify Import, Questions, Config, and Results tabs are hidden or inaccessible</td><td class="expected-col">Only Monitor (and possibly Centres) visible</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>I3</td><td class="step-col">Check Monitor tab shows only students from the invigilator's assigned centre</td><td class="expected-col">Students from other centres not shown</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+        <tr><td>I4</td><td class="step-col">Attempt to access a restricted API endpoint directly (e.g. <code>/api/admin/results</code>)</td><td class="expected-col">403 Forbidden returned</td><td class="pf-col"><div class="pf-box"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== SIGN-OFF CHECKLIST ===================== -->
+<div class="page page-break">
+  <h2 style="margin-bottom: 24px;">Sign-Off Checklist</h2>
+  <p style="color:#6b7280; margin-bottom: 24px;">Check off each item before declaring the build ready for production.</p>
+
+  <ul class="checklist">
+    <li><div class="check-box"></div>Admin can log in and out</li>
+    <li><div class="check-box"></div>Admin can configure the exam (time, duration, test mode)</li>
+    <li><div class="check-box"></div>Admin can manage exam centres</li>
+    <li><div class="check-box"></div>Admin can import students from Excel</li>
+    <li><div class="check-box"></div>Admin can create, edit, and delete questions</li>
+    <li><div class="check-box"></div>Admin can monitor live student activity in real time</li>
+    <li><div class="check-box"></div>Admin can view individual student details (answers, strikes, password)</li>
+    <li><div class="check-box"></div>Admin can reset or delete a student</li>
+    <li><div class="check-box"></div>Admin can view results and export CSV</li>
+    <li><div class="check-box"></div>Student login works with generated credentials</li>
+    <li><div class="check-box"></div>Exam loads with correct questions and timer</li>
+    <li><div class="check-box"></div>Questions and options are shuffled per student</li>
+    <li><div class="check-box"></div>Answers auto-save on selection</li>
+    <li><div class="check-box"></div>Answers persist on page reload</li>
+    <li><div class="check-box"></div>Anti-cheat strikes work and appear in admin dashboard</li>
+    <li><div class="check-box"></div>3 strikes auto-submits the exam</li>
+    <li><div class="check-box"></div>Timer auto-submits the exam on expiry</li>
+    <li><div class="check-box"></div>Manual submission works with confirmation prompt</li>
+    <li><div class="check-box"></div>Cannot re-enter exam after submission</li>
+    <li><div class="check-box"></div>Scores calculated correctly in Results tab</li>
+    <li><div class="check-box"></div>Invigilator role has restricted access</li>
+    <li><div class="check-box"></div>Edge cases pass (concurrency, network drops, Arabic text)</li>
+  </ul>
+
+  <div class="doc-footer">
+    <p>Al Jamia Examination System &nbsp;·&nbsp; UAT-1 &nbsp;·&nbsp; April 2026 &nbsp;·&nbsp; For issues, contact the system administrator</p>
+  </div>
+</div>
+
+</body>
+</html>
