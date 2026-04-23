@@ -1,0 +1,5 @@
+/*
+  Redirect all traffic to index.html for Single Page Application (SPA) routing.
+  This ensures that refreshing on /admin or /results doesn't return a 404.
+*/
+/*  /index.html  200

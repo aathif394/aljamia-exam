@@ -156,8 +156,9 @@ export default function Dashboard() {
     const token = localStorage.getItem("token");
     if (!token) return;
     const proto = location.protocol === "https:" ? "wss" : "ws";
+    const host = import.meta.env.PROD ? 'aljamia-admission-exam.fly.dev' : location.host;
     const ws = new WebSocket(
-      `${proto}://${location.host}/ws/dashboard?token=${token}`,
+      `${proto}://${host}/ws/dashboard?token=${token}`,
     );
     wsRef.current = ws;
     ws.onopen = () => setWsConnected(true);

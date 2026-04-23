@@ -1,5 +1,7 @@
 
-const BASE = '/api'
+const BASE = import.meta.env.PROD 
+  ? 'https://aljamia-admission-exam.fly.dev/api' 
+  : '/api'
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
