@@ -33,7 +33,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        arabic: ['Cairo', 'Arial', 'sans-serif'],
+        arabic: ['Sakkal Majalla', 'Arial', 'sans-serif'],
       },
       borderRadius: {
         none: '0px',

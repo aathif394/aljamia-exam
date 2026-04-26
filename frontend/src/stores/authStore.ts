@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Student } from '../types'
+import { useExamStore } from './examStore'
 
 interface StudentAuth {
   token: string
@@ -38,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
       },
       clearStudent: () => {
         localStorage.removeItem('token')
+        useExamStore.getState().reset()
         set({ studentAuth: null })
       },
       clearAdmin: () => {

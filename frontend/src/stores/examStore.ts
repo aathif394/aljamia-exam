@@ -11,6 +11,7 @@ interface ExamState {
   strikes: number
   status: string
   sectionDescriptions: Record<string, string>
+  timeLeft: number | null
   initializeExam: (data: any) => void
   setQuestions: (qs: Question[], answers?: Record<string, string>) => void
   setAnswer: (questionId: number, answer: string) => void
@@ -32,18 +33,27 @@ export const useExamStore = create<ExamState>()(persist((set) => ({
   strikes: 0,
   status: 'pending',
   sectionDescriptions: {},
+  timeLeft: null,
 
-  // 1. ADD THIS: Bulk initializer to prevent race conditions
-  initializeExam: (data: any) => set((state) => ({
-    ...state,
-    questions: data.questions || [],
-    // Merge: local unsaved answers first, DB answers win (DB is authoritative)
-    answers: { ...state.answers, ...(data.answers || {}) },
-    durationMinutes: data.duration_minutes || state.durationMinutes,
-    sectionDescriptions: data.section_descriptions || {},
-    status: 'active',
-    startTime: data.start_time ? new Date(data.start_time) : (state.startTime || new Date()),
-  })),
+  // 1. Bulk initializer to prevent race conditions
+  initializeExam: (data: any) => set((state) => {
+    const serverNow = data.server_now ? new Date(data.server_now).getTime() : Date.now();
+    const startTime = data.start_time ? new Date(data.start_time).getTime() : serverNow;
+    const totalMs = (data.duration_minutes || state.durationMinutes) * 60000;
+    const elapsed = serverNow - startTime;
+    const timeLeft = Math.max(0, totalMs - elapsed);
+
+    return {
+      ...state,
+      questions: data.questions || [],
+      answers: data.answers || {},
+      durationMinutes: data.duration_minutes || state.durationMinutes,
+      sectionDescriptions: data.section_descriptions || {},
+      status: data.status || 'active',
+      startTime: data.start_time ? new Date(data.start_time) : (state.startTime || new Date()),
+      timeLeft,
+    };
+  }),
 
   // 2. Fix setQuestions to be a merge, not a replacement
   setQuestions: (qs, answers = {}) => 

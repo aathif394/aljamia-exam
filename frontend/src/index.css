@@ -1,4 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&family=Alexandria:wght@100..900&family=Inter:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+@font-face {
+  font-family: 'Sakkal Majalla';
+  src: url('/fonts/MAJALLA.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Sakkal Majalla';
+  src: url('/fonts/MAJALLAB.TTF') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+
 
 @tailwind base;
 @tailwind components;
@@ -11,17 +27,20 @@
   }
 
   body {
-    /* Rubik/Alexandria after Inter ensures they are used for Arabic characters */
-    font-family: 'Inter', 'Rubik', 'Alexandria', system-ui, -apple-system, sans-serif;
+    /* Sakkal Majalla after Inter ensures it is used for Arabic characters */
+    font-family: 'Inter', 'Sakkal Majalla', system-ui, -apple-system, sans-serif;
     @apply bg-brand-950;
     overscroll-behavior: none;
     overflow-x: hidden;
   }
 
   /* Automatically scale up Arabic text for better legibility */
-  [dir="rtl"], .font-arabic, :lang(ar) {
-    font-family: 'Rubik', 'Alexandria', sans-serif;
-    font-size: 1.25em; /* Increased from 1.1em for maximum readability */
+  [dir="rtl"],
+  .font-arabic,
+  :lang(ar) {
+    font-family: 'Sakkal Majalla', sans-serif;
+    font-size: 1.35em;
+    /* Adjusted for Sakkal Majalla readability */
     line-height: 1.6;
   }
 
@@ -34,7 +53,7 @@
 
 @layer utilities {
   .font-arabic {
-    font-family: 'Rubik', 'Alexandria', sans-serif;
+    font-family: 'Sakkal Majalla', sans-serif;
   }
 
   .rtl {

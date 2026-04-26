@@ -23,6 +23,7 @@ export interface Question {
   options_ar: string[]
   marks: number
   stream: string | null
+  correct_answer?: string
 }
 
 export interface Student {

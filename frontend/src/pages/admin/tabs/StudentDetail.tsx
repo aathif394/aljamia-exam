@@ -47,7 +47,9 @@ export function getSectionSummary(
   questions: QuestionRow[],
 ): { section: number; answered: number; total: number }[] {
   const relevant = questions.filter(
-    (q) => q.paper_set.toUpperCase() === (student.paper_set ?? "").toUpperCase(),
+    (q) => 
+      q.paper_set.toUpperCase() === (student.paper_set ?? "").toUpperCase() &&
+      (!q.stream || q.stream === student.stream)
   );
   const sectionMap = new Map<number, { answered: number; total: number }>();
   for (const q of relevant) {
@@ -100,7 +102,7 @@ function Detail({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] uppercase tracking-widest text-stone-500 font-semibold mb-0.5">
         {label}
       </p>
-      <p className="text-stone-900 text-sm font-medium break-words">{value}</p>
+      <p className="text-stone-900 text-base font-medium break-words">{value}</p>
     </div>
   );
 }
@@ -221,12 +223,12 @@ function QuestionGrader({
         {/* Question text */}
         <div className="px-5 pt-5 pb-4 space-y-4">
           {question.question_en && (
-            <p className="text-stone-900 text-base leading-relaxed font-medium">
+            <p className="text-stone-900 text-lg sm:text-xl leading-relaxed font-medium">
               {question.question_en}
             </p>
           )}
           {question.question_ar && (
-            <p className="text-stone-900 text-xl leading-relaxed font-arabic" dir="rtl">
+            <p className="text-stone-900 text-2xl sm:text-3xl leading-relaxed font-arabic" dir="rtl">
               {question.question_ar}
             </p>
           )}
@@ -249,27 +251,39 @@ function QuestionGrader({
               return (
                 <div
                   key={i}
-                  className={`flex flex-col gap-2 px-4 py-3 border rounded-none transition-colors ${style}`}
+                  className={`flex flex-col gap-2 px-4 py-3 border-2 rounded-xl transition-all ${style} ${isChosen && !isCorrectOpt ? "shadow-sm shadow-rose-100" : ""} ${isCorrectOpt ? "shadow-sm shadow-teal-100" : ""}`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className={`flex-shrink-0 w-7 h-7 flex items-center justify-center text-sm font-bold ${isCorrectOpt && isChosen ? "bg-teal-600 text-white" :
+                    <span className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm ${isCorrectOpt && isChosen ? "bg-teal-600 text-white" :
                       isCorrectOpt ? "bg-teal-500 text-white" :
                         isChosen ? "bg-rose-500 text-white" :
                           "bg-stone-100 text-stone-500"
                       }`}>
                       {label}
                     </span>
-                    <div className="flex-1 space-y-2">
-                      <span className="text-sm leading-relaxed block">{opt}</span>
+                    <div className="flex-1 space-y-1">
+                      <span className="text-base sm:text-lg leading-snug block font-medium">{opt}</span>
                       {optAr && (
-                        <span className="text-base leading-relaxed block font-arabic" dir="rtl">{optAr}</span>
+                        <span className="text-xl sm:text-2xl leading-relaxed block font-arabic" dir="rtl">{optAr}</span>
                       )}
                     </div>
-                    <span className="flex-shrink-0 ml-2 text-right">
-                      {isCorrectOpt && isChosen && <span className="text-xs font-semibold text-teal-700">✓ correct — chosen</span>}
-                      {isCorrectOpt && !isChosen && <span className="text-xs font-semibold text-teal-600">✓ correct answer</span>}
-                      {!isCorrectOpt && isChosen && <span className="text-xs font-semibold text-rose-600">✗ student chose this</span>}
-                    </span>
+                    <div className="flex-shrink-0 ml-2 flex flex-col items-end gap-1">
+                      {isCorrectOpt && isChosen && (
+                        <div className="flex items-center gap-1.5 text-teal-700 bg-teal-100/50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+                          <CheckCircle className="w-3 h-3" /> Correct
+                        </div>
+                      )}
+                      {isCorrectOpt && !isChosen && (
+                        <div className="flex items-center gap-1.5 text-teal-600 bg-teal-100/30 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+                          <CheckCircle className="w-3 h-3" /> Correct Answer
+                        </div>
+                      )}
+                      {!isCorrectOpt && isChosen && (
+                        <div className="flex items-center gap-1.5 text-rose-700 bg-rose-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+                          <XCircle className="w-3 h-3" /> Student Choice
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -294,12 +308,27 @@ function QuestionGrader({
                 else if (isChosen) style = "bg-rose-50 border-rose-400 text-rose-900";
 
                 return (
-                  <div key={val} className={`px-4 py-4 border text-center ${style}`}>
+                  <div key={val} className={`px-4 py-4 border-2 rounded-xl text-center relative transition-all ${style} ${isChosen && !isCorrectOpt ? "shadow-sm shadow-rose-100" : ""} ${isCorrectOpt ? "shadow-sm shadow-teal-100" : ""}`}>
                     <p className="text-lg font-bold capitalize mb-1">{val}</p>
                     <p className="text-xl font-arabic" dir="rtl">{labelAr}</p>
-                    {isCorrectOpt && <p className="text-xs font-semibold text-teal-600 mt-2">✓ correct answer</p>}
-                    {isChosen && !isCorrectOpt && <p className="text-xs font-semibold text-rose-600 mt-1">✗ student chose this</p>}
-                    {isChosen && isCorrectOpt && <p className="text-xs font-semibold text-teal-700 mt-1">✓ student chose this</p>}
+                    
+                    <div className="mt-3 flex flex-col items-center gap-1">
+                      {isCorrectOpt && isChosen && (
+                        <div className="flex items-center gap-1.5 text-teal-700 bg-teal-100/50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+                          <CheckCircle className="w-3 h-3" /> Correct
+                        </div>
+                      )}
+                      {isCorrectOpt && !isChosen && (
+                        <div className="flex items-center gap-1.5 text-teal-600 bg-teal-100/30 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+                          <CheckCircle className="w-3 h-3" /> Correct Answer
+                        </div>
+                      )}
+                      {!isCorrectOpt && isChosen && (
+                        <div className="flex items-center gap-1.5 text-rose-700 bg-rose-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+                          <XCircle className="w-3 h-3" /> Student Choice
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -322,7 +351,7 @@ function QuestionGrader({
                 </div>
               ) : (
                 <div className={`border px-4 py-4 text-stone-900 leading-relaxed whitespace-pre-wrap ${question.type === "descriptive" ? "min-h-[120px]" : ""
-                  } bg-white border-stone-300 ${student.name_ar || studentAnswer.match(/[\u0600-\u06FF]/) ? "font-arabic text-lg" : "text-sm"}`} dir={studentAnswer.match(/[\u0600-\u06FF]/) ? "rtl" : "ltr"}>
+                  } bg-white border-stone-300 ${student.name_ar || studentAnswer.match(/[\u0600-\u06FF]/) ? "font-arabic text-2xl" : "text-lg"}`} dir={studentAnswer.match(/[\u0600-\u06FF]/) ? "rtl" : "ltr"}>
                   {studentAnswer}
                 </div>
               )}
@@ -525,7 +554,8 @@ export function StudentDetailModal({
         const merged = base.map((q) => ({
           ...q,
           paper_set: student.paper_set,
-          correct_answer: originalsById[q.id]?.correct_answer ?? "",
+          // Prefer backend-provided correct_answer (which is shuffle-aware)
+          correct_answer: q.correct_answer || originalsById[q.id]?.correct_answer || "",
         }));
         setQuestions(merged);
 
@@ -737,9 +767,9 @@ export function StudentDetailModal({
             </div>
             <div className="min-w-0">
               <div className="flex items-baseline gap-3">
-                <p className="text-white font-black text-lg sm:text-xl tracking-tight leading-tight uppercase truncate">{student.name_en}</p>
+                <p className="text-white font-black text-lg sm:text-2xl tracking-tight leading-tight uppercase">{student.name_en}</p>
                 {student.name_ar && (
-                  <p className="text-white/80 font-arabic text-xl tracking-wide truncate" dir="rtl">{student.name_ar}</p>
+                  <p className="text-white/80 font-arabic text-xl sm:text-3xl tracking-wide" dir="rtl">{student.name_ar}</p>
                 )}
               </div>
               <div className="flex items-center gap-3 mt-1">
@@ -900,7 +930,7 @@ export function StudentDetailModal({
                         <p className="text-[10px] uppercase tracking-widest font-semibold text-stone-500 mb-1">
                           Final Score
                         </p>
-                        <p className={`text-6xl font-black tabular-nums ${effectivePassMark == null
+                        <p className={`text-5xl sm:text-7xl font-black tabular-nums ${effectivePassMark == null
                           ? "text-stone-900"
                           : (student.score || 0) >= effectivePassMark
                             ? "text-teal-800"
@@ -1037,20 +1067,20 @@ export function StudentDetailModal({
                     <div className="flex-shrink-0 border-b border-stone-200 bg-stone-50 px-4 sm:px-5 py-3">
                       <div className="flex items-center gap-4 flex-wrap">
                         {/* Score breakdown */}
-                        <div className="flex items-center gap-3 text-sm">
+                        <div className="flex items-center gap-3 text-sm sm:text-base">
                           <div className="flex items-center gap-1.5">
                             <span className="text-stone-400">Auto</span>
-                            <span className="font-bold text-stone-900 tabular-nums text-base">{autoScore}</span>
+                            <span className="font-bold text-stone-900 tabular-nums text-lg">{autoScore}</span>
                           </div>
                           <span className="text-stone-300 font-light">+</span>
                           <div className="flex items-center gap-1.5">
                             <span className="text-stone-400">Manual</span>
-                            <span className="font-bold text-stone-900 tabular-nums text-base">{manualScore.toFixed(1)}</span>
+                            <span className="font-bold text-stone-900 tabular-nums text-lg">{manualScore.toFixed(1)}</span>
                           </div>
                           <span className="text-stone-300 font-light">=</span>
                           <div className="flex items-center gap-1.5">
                             <span className="text-stone-500 font-medium">Total</span>
-                            <span className="font-black text-xl tabular-nums text-brand-700">{computedTotal.toFixed(1)}</span>
+                            <span className="font-black text-2xl sm:text-3xl tabular-nums text-brand-700">{computedTotal.toFixed(1)}</span>
                           </div>
                         </div>
 
@@ -1063,19 +1093,19 @@ export function StudentDetailModal({
                         )}
 
                         {/* Save controls */}
-                        <div className="flex items-center gap-2 ml-auto">
+                        <div className="flex items-center gap-2 w-full lg:w-auto lg:ml-auto">
                           <input
                             type="number"
                             value={scoreOverride}
                             onChange={(e) => setScoreOverride(e.target.value)}
                             placeholder={`${computedTotal.toFixed(1)} (override)`}
-                            className="w-36 border border-stone-300 px-3 py-1.5 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-lg"
+                            className="flex-1 lg:w-36 border border-stone-300 px-3 py-1.5 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-lg"
                           />
                           <button
                             type="button"
                             onClick={handleSaveGrade}
                             disabled={saving}
-                            className="flex items-center gap-2 bg-brand-700 hover:bg-brand-800 text-white text-[10px] font-bold uppercase tracking-widest px-6 h-10 transition-all disabled:opacity-50 shadow-md shadow-brand-900/10 rounded-lg"
+                            className="flex items-center justify-center gap-2 bg-brand-700 hover:bg-brand-800 text-white text-[10px] font-bold uppercase tracking-widest px-6 h-10 transition-all disabled:opacity-50 shadow-md shadow-brand-900/10 rounded-lg whitespace-nowrap"
                           >
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             Save Grade
@@ -1119,10 +1149,9 @@ export function StudentDetailModal({
                   )}
 
                   {/* ── Two-panel layout ── */}
-                  <div className="flex flex-1 min-h-0 overflow-hidden">
-
+                  <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
                     {/* ── Left: question navigator sidebar ── */}
-                    <div className="w-56 sm:w-64 flex-shrink-0 border-r border-stone-200 overflow-y-auto bg-stone-50">
+                    <div className="w-full lg:w-64 h-32 lg:h-full flex-shrink-0 border-b lg:border-b-0 lg:border-r border-stone-200 overflow-y-auto bg-stone-50">
                       {sectionGroups.map(([section, sqs]) => {
                         // Count answered in section
                         const answered = sqs.filter((q) => (student.answers || {})[String(q.id)]?.trim()).length;
@@ -1138,53 +1167,57 @@ export function StudentDetailModal({
                               </div>
                             </div>
 
-                            {/* Question items */}
-                            {sqs.map((q) => {
-                              const ans = (student.answers || {})[String(q.id)] ?? "";
-                              const mark = manualMarks[String(q.id)] ?? "0";
-                              const status = getQStatus(q, ans, mark);
-                              const flatIdx = flatQuestions.findIndex((fq) => fq.id === q.id);
-                              const isActive = flatIdx === activeQIndex;
+                            {/* Question items - Grid on mobile for easier tapping */}
+                            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-1">
+                              {sqs.map((q) => {
+                                const ans = (student.answers || {})[String(q.id)] ?? "";
+                                const mark = manualMarks[String(q.id)] ?? "0";
+                                const status = getQStatus(q, ans, mark);
+                                const flatIdx = flatQuestions.findIndex((fq) => fq.id === q.id);
+                                const isActive = flatIdx === activeQIndex;
 
-                              return (
-                                <button
-                                  key={q.id}
-                                  onClick={() => setActiveQIndex(flatIdx)}
-                                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 border-b border-stone-200/60 transition-colors text-left ${isActive
-                                    ? "bg-brand-50 border-l-2 border-l-brand-600"
-                                    : "hover:bg-white border-l-2 border-l-transparent"
-                                    }`}
-                                >
-                                  {/* Status dot */}
-                                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT_Q[status]}`} />
+                                return (
+                                  <button
+                                    key={q.id}
+                                    onClick={() => setActiveQIndex(flatIdx)}
+                                    className={`flex items-center gap-2 lg:gap-2.5 px-3 py-2.5 border-b border-r lg:border-r-0 border-stone-200/60 transition-colors text-left ${isActive
+                                      ? "bg-brand-50 border-l-2 border-l-brand-600"
+                                      : "hover:bg-white border-l-2 border-l-transparent"
+                                      }`}
+                                  >
+                                    {/* Status dot - only on desktop or larger mobile */}
+                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT_Q[status]}`} />
 
-                                  {/* Q number */}
-                                  <span className={`text-xs font-bold tabular-nums w-6 flex-shrink-0 ${isActive ? "text-brand-700" : "text-stone-500"
-                                    }`}>
-                                    {q.question_number}
-                                  </span>
+                                    {/* Q number */}
+                                    <span className={`text-xs font-bold tabular-nums w-4 lg:w-6 flex-shrink-0 ${isActive ? "text-brand-700" : "text-stone-500"
+                                      }`}>
+                                      {q.question_number}
+                                    </span>
 
-                                  {/* Type tag */}
-                                  <span className="text-[10px] text-stone-400 uppercase tracking-wide flex-1 truncate">
-                                    {q.type === "mcq" ? "MCQ" :
-                                      q.type === "true_false" ? "T/F" :
-                                        q.type === "fill_blank" ? "Fill" : "Desc"}
-                                  </span>
+                                    {/* Type tag - hidden on mobile grid */}
+                                    <span className="hidden lg:block text-[10px] text-stone-400 uppercase tracking-wide flex-1 truncate">
+                                      {q.type === "mcq" ? "MCQ" :
+                                        q.type === "true_false" ? "T/F" :
+                                          q.type === "fill_blank" ? "Fill" : "Desc"}
+                                    </span>
 
-                                  {/* Status icon / mark */}
-                                  <span className="flex-shrink-0">
-                                    {(q.type === "fill_blank" || q.type === "descriptive") ? (
-                                      <span className={`text-[10px] font-bold tabular-nums ${parseFloat(mark) > 0 ? "text-teal-600" : "text-amber-500"
-                                        }`}>
-                                        {mark}/{q.marks}
-                                      </span>
-                                    ) : (
-                                      STATUS_ICON_Q[status]
-                                    )}
-                                  </span>
-                                </button>
-                              );
-                            })}
+                                    {/* Status icon / mark - compact on mobile */}
+                                    <span className="flex-shrink-0 ml-auto">
+                                      {(q.type === "fill_blank" || q.type === "descriptive") ? (
+                                        <span className={`text-[9px] lg:text-[10px] font-bold tabular-nums ${parseFloat(mark) > 0 ? "text-teal-600" : "text-amber-500"
+                                          }`}>
+                                          {mark}
+                                        </span>
+                                      ) : (
+                                        <span className="scale-75 lg:scale-100">
+                                          {STATUS_ICON_Q[status]}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         );
                       })}

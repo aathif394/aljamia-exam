@@ -66,6 +66,15 @@ export default function ExamPage() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error" | null>(null);
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem("exam-font-size");
+    return saved ? parseFloat(saved) : 1;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("exam-font-size", fontSize.toString());
+  }, [fontSize]);
+
   // Cleanup saveStatusTimer on unmount
   useEffect(() => () => {
     if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
@@ -152,8 +161,12 @@ export default function ExamPage() {
         setStarted(true);
       })
       .catch((err) => {
-        // If 400/403, it likely means the exam hasn't started yet
-        // or they aren't authorized. We just stay on the rules/start screen.
+        // If the server says they have submitted, honor that immediately
+        if (err instanceof ApiError && err.status === 403 && err.message.toLowerCase().includes("submitted")) {
+          navigate("/submitted", { replace: true });
+          return;
+        }
+        // Fallback to checking the student object in auth
         if (student.status === "submitted") {
           navigate("/submitted", { replace: true });
         }
@@ -163,9 +176,22 @@ export default function ExamPage() {
   // Keep a ref so the isExpired effect always calls the current handleSubmit,
   // not a stale closure from the first render.
   const handleSubmitRef = useRef<(auto?: boolean) => Promise<void>>(async () => {});
+  // ── Auto-submit on expiration ───────────────────────────────────────────────
   useEffect(() => {
-    if (isExpired && started && status !== "submitted") handleSubmitRef.current(true);
+    // Only auto-submit if the exam is active and actually expired.
+    // We add a small 'started' check to ensure we've at least loaded the initial state.
+    if (isExpired && started && (status === "active" || status === "flagged")) {
+      console.log("Timer expired, auto-submitting...");
+      handleSubmitRef.current(true);
+    }
   }, [isExpired, started, status]);
+
+  // ── Redirect if submitted ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (started && status === "submitted") {
+      navigate("/submitted", { replace: true });
+    }
+  }, [started, status, navigate]);
 
   // ── Section countdown ticker ────────────────────────────────────────────────
   useEffect(() => {
@@ -561,6 +587,24 @@ export default function ExamPage() {
             <span className="text-stone-900 text-sm font-black tracking-tight truncate">Q {currentIndex + 1} <span className="text-stone-400 font-medium lowercase">of {questions.length}</span></span>
           </div>
 
+          <div className="flex items-center gap-1 bg-stone-100 border border-stone-200 rounded-lg p-0.5 ml-2">
+            <button
+              onClick={() => setFontSize(s => Math.max(0.8, s - 0.1))}
+              className="flex items-center gap-1.5 px-2.5 h-8 text-stone-600 hover:bg-white rounded-md transition-all active:scale-90"
+              title="Decrease Font Size"
+            >
+              <span className="text-[10px] font-black uppercase tracking-tight">Smaller</span>
+            </button>
+            <div className="w-px h-4 bg-stone-300" />
+            <button
+              onClick={() => setFontSize(s => Math.min(1.8, s + 0.1))}
+              className="flex items-center gap-1.5 px-2.5 h-8 text-stone-600 hover:bg-white rounded-md transition-all active:scale-90"
+              title="Increase Font Size"
+            >
+              <span className="text-[10px] font-black uppercase tracking-tight">Larger</span>
+            </button>
+          </div>
+
           {questions.some((q) => q.language === "both" || q.language === "ar") && (
             <button
               onClick={() => setLang((l) => (l === "en" ? "ar" : "en"))}
@@ -713,6 +757,7 @@ export default function ExamPage() {
                   onAnswer={handleAnswer}
                   lang={lang}
                   palette={palette}
+                  fontSizeMultiplier={fontSize}
                 />
               </div>
             </div>

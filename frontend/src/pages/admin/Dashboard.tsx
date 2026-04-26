@@ -229,7 +229,7 @@ export default function Dashboard() {
             );
           }
           if (msg.q_id != null) {
-            s.answers = { ...(s.answers || {}), [qIdStr]: "✓" };
+            s.answers = { ...(s.answers || {}), [qIdStr]: (msg.answer as string) || "✓" };
           }
           setDisconnectedMap((prev) => {
             const next = { ...prev };

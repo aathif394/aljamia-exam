@@ -220,11 +220,13 @@ async def get_questions(
         if isinstance(student["question_order"], list)
         else json.loads(student["question_order"] or "[]")
     )
-    answers = (
-        student["answers"]
-        if isinstance(student["answers"], dict)
-        else json.loads(student["answers"] or "{}")
+
+    # Fetch answers from the authoritative student_answers table
+    answer_rows = await db.fetch(
+        "SELECT question_id, answer_text FROM student_answers WHERE student_id = $1",
+        student["id"]
     )
+    answers = {str(r["question_id"]): r["answer_text"] for r in answer_rows}
 
     questions = _QUESTION_CACHE.get(roll)
     if questions is None:
@@ -258,6 +260,7 @@ async def get_questions(
         "start_time": (
             student["start_time"].isoformat() if student["start_time"] else None
         ),
+        "server_now": _utcnow().isoformat(),
         "duration_minutes": duration,
         "status": student["status"],
         "current_section": student["current_section"] or 1,
@@ -272,14 +275,17 @@ async def get_questions(
     }
 
 
-async def _fetch_questions_ordered(db, q_ids: list, roll_number: str) -> list:
+async def _fetch_questions_ordered(db, q_ids: list, roll_number: str, include_correct: bool = False) -> list:
     if not q_ids:
         return []
-    rows = await db.fetch(
-        """SELECT id, section, question_number, type, language,
+    fields = """id, section, question_number, type, language,
                   question_en, question_ar, options_en, options_ar,
-                  correct_answer, marks, stream
-           FROM questions WHERE id = ANY($1::int[])""",
+                  marks, stream"""
+    if include_correct:
+        fields += ", correct_answer"
+        
+    rows = await db.fetch(
+        f"SELECT {fields} FROM questions WHERE id = ANY($1::int[])",
         q_ids,
     )
     by_id = {r["id"]: dict(r) for r in rows}
@@ -300,7 +306,6 @@ async def _fetch_questions_ordered(db, q_ids: list, roll_number: str) -> list:
             )
 
         if q["type"] == "mcq":
-
             def _parse(opts):
                 if isinstance(opts, list):
                     return opts
@@ -326,10 +331,25 @@ async def _fetch_questions_ordered(db, q_ids: list, roll_number: str) -> list:
                     q["options_ar"] = json.dumps(shuffled_ar)
                 elif opts_ar:
                     q["options_ar"] = json.dumps(opts_ar)
+
+                # If we need the correct answer (for admins), map it to the new index
+                if include_correct and q.get("correct_answer"):
+                    correct = q["correct_answer"].strip().upper()
+                    label_to_idx = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4, "F": 5}
+                    idx_to_label = {0: "A", 1: "B", 2: "C", 3: "D", 4: "E", 5: "F"}
+                    orig_idx = label_to_idx.get(correct)
+                    if orig_idx is not None:
+                        try:
+                            # new_idx j where indices[j] == orig_idx
+                            new_idx = indices.index(orig_idx)
+                            q["correct_answer"] = idx_to_label.get(new_idx, correct)
+                        except ValueError:
+                            pass
             elif opts_ar:
                 q["options_ar"] = json.dumps(opts_ar)
 
-        q.pop("correct_answer", None)
+        if not include_correct:
+            q.pop("correct_answer", None)
         ordered.append(q)
     return ordered
 
@@ -380,7 +400,7 @@ async def save_answer(
 
     # Use BackgroundTasks for WebSockets to hit <500ms targets
     background_tasks.add_task(
-        broadcast, {"type": "answer_saved", "roll": roll, "q_id": q_id}
+        broadcast, {"type": "answer_saved", "roll": roll, "q_id": q_id, "answer": answer}
     )
 
     return {"saved": True}
@@ -653,5 +673,5 @@ async def admin_student_view(
 
         q_ids = json.loads(q_ids)
 
-    questions = await _fetch_questions_ordered(db, q_ids, roll_number)
+    questions = await _fetch_questions_ordered(db, q_ids, roll_number, include_correct=True)
     return {"questions": questions}

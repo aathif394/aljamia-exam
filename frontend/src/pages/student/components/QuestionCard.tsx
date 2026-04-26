@@ -17,12 +17,14 @@ export const QuestionCard = React.memo(function QuestionCard({
   onAnswer,
   lang,
   palette,
+  fontSizeMultiplier = 1,
 }: {
   question: Question;
   answer: string;
   onAnswer: (a: string) => void;
   lang: "en" | "ar";
   palette: SectionPalette;
+  fontSizeMultiplier?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -69,9 +71,18 @@ export const QuestionCard = React.memo(function QuestionCard({
   const options = isAr ? (optionsAr.length > 0 ? optionsAr : optionsEn) : optionsEn;
   const optionLabels = ["A", "B", "C", "D", "E", "F"];
 
+  // Base font sizes for different elements
+  const questionBaseSize = isAr ? 36 : 24; // 4xl vs 2xl
+  const optionBaseSize = isAr ? 20 : 14; // xl vs sm
+  const inputBaseSize = isAr ? 24 : 18; // 2xl vs lg
+  const textareaBaseSize = isAr ? 20 : 16; // xl vs base
+
   return (
     <div className={isAr ? "rtl font-arabic" : "ltr"} dir={isAr ? "rtl" : "ltr"}>
-      <p className={`text-stone-900 font-bold leading-relaxed mb-10 select-none tracking-tight ${isAr ? 'text-4xl' : 'text-2xl'}`}>
+      <p 
+        className="text-stone-900 font-bold leading-relaxed mb-10 select-none tracking-tight"
+        style={{ fontSize: `${questionBaseSize * fontSizeMultiplier}px` }}
+      >
         {qText}
       </p>
 
@@ -85,11 +96,11 @@ export const QuestionCard = React.memo(function QuestionCard({
                 key={i}
                 onClick={() => onAnswer(selected ? "" : label)}
                 className={`w-full px-4 py-4 border-2 transition-all min-h-[70px] active:scale-[0.99] flex flex-row items-center gap-4 rounded-xl shadow-sm
-                  ${isAr ? 'text-xl' : 'text-sm'}
                   ${selected
                     ? `${palette.light} ${palette.border} shadow-md`
                     : "bg-white border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300 hover:shadow-md active:bg-stone-100"
                   }`}
+                style={{ fontSize: `${optionBaseSize * fontSizeMultiplier}px` }}
               >
                 <span
                   className={`flex-shrink-0 rounded-full flex items-center justify-center font-black transition-all
@@ -121,13 +132,13 @@ export const QuestionCard = React.memo(function QuestionCard({
               key={value}
               onClick={() => onAnswer(answer === value ? "" : value)}
               className={`py-5 border font-semibold transition-all shadow-sm min-h-[64px] active:scale-[0.98]
-                ${isAr ? 'text-xl' : 'text-base'}
                 ${answer === value
                   ? value === "true"
                     ? "bg-teal-50 border-teal-500 text-teal-900"
                     : "bg-rose-50 border-rose-500 text-rose-900"
                   : "bg-white border-stone-200 text-stone-700 hover:bg-stone-50 active:bg-stone-100 hover:border-stone-300"
                 }`}
+              style={{ fontSize: `${(isAr ? 20 : 16) * fontSizeMultiplier}px` }}
             >
               {label}
             </button>
@@ -144,7 +155,8 @@ export const QuestionCard = React.memo(function QuestionCard({
             onChange={(e) => onAnswer(e.target.value)}
             placeholder={isAr ? "اكتب إجابتك هنا" : "Type your answer here"}
             maxLength={200}
-            className={`relative z-10 cursor-text select-text w-full bg-white border-2 border-stone-200 px-5 py-5 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-600 font-bold transition-all rounded-xl ${isAr ? " font-arabic text-2xl" : "text-lg"}`}
+            className="relative z-10 cursor-text select-text w-full bg-white border-2 border-stone-200 px-5 py-5 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-600 font-bold transition-all rounded-xl"
+            style={{ fontSize: `${inputBaseSize * fontSizeMultiplier}px` }}
             dir={isAr ? "rtl" : "ltr"}
           />
           <p className="text-stone-400 text-[10px] mt-2 font-black uppercase tracking-widest text-end tabular-nums italic">
@@ -162,7 +174,8 @@ export const QuestionCard = React.memo(function QuestionCard({
             placeholder={isAr ? "اكتب إجابتك هنا..." : "Write your answer here..."}
             rows={8}
             maxLength={1000}
-            className={`relative z-10 cursor-text select-text w-full bg-white border-2 border-stone-200 px-5 py-5 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-600 font-medium resize-none transition-all rounded-xl ${isAr ? " font-arabic text-xl" : "text-base"}`}
+            className="relative z-10 cursor-text select-text w-full bg-white border-2 border-stone-200 px-5 py-5 text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-brand-600 font-medium resize-none transition-all rounded-xl"
+            style={{ fontSize: `${textareaBaseSize * fontSizeMultiplier}px` }}
             dir={isAr ? "rtl" : "ltr"}
           />
           <p className="text-stone-400 text-[10px] mt-2 font-black uppercase tracking-widest text-end tabular-nums italic">
