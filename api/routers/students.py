@@ -41,34 +41,39 @@ async def student_login(body: dict, request: Request, db=Depends(get_db)):
     if not roll or not password:
         raise HTTPException(400, "Roll number and password are required")
 
-    student = await db.fetchrow("SELECT * FROM students WHERE roll_number = $1", roll)
-    if not student:
+    row = await db.fetchrow(
+        """
+        SELECT s.*, e.id AS exam_id_e, e.name AS exam_name_e,
+               e.exam_start_time, e.exam_duration_minutes, e.test_mode,
+               e.grace_minutes, e.section_durations, e.section_descriptions,
+               e.section_auto_advance
+        FROM students s
+        JOIN exams e ON s.exam_id = e.id
+        WHERE s.roll_number = $1
+        """,
+        roll,
+    )
+    if not row:
         raise HTTPException(404, "Roll number not found")
-    if student["password"] != password:
+    if row["password"] != password:
         raise HTTPException(401, "Incorrect password")
 
-    # Exam is strictly determined by the admin-assigned exam_id — no student choice, no fallback.
-    if not student.get("exam_id"):
-        raise HTTPException(403, "You are not registered for any exam. Please contact your invigilator.")
-    exam = await db.fetchrow(
-        "SELECT * FROM exams WHERE id = $1", student["exam_id"]
-    )
-    if exam is None:
-        raise HTTPException(403, "Your assigned exam no longer exists. Please contact your invigilator.")
+    student = row
+    exam = row
 
     # Check exam start time and grace window
-    if not exam["test_mode"]:
-        if exam["exam_start_time"] is None:
+    if not row["test_mode"]:
+        if row["exam_start_time"] is None:
             raise HTTPException(503, "Exam not scheduled")
         from datetime import timedelta
-        start_dt = exam["exam_start_time"].replace(tzinfo=timezone.utc)
+        start_dt = row["exam_start_time"].replace(tzinfo=timezone.utc)
         now = _utcnow()
         if now < start_dt:
             raise HTTPException(
                 403,
-                {"code": "EXAM_NOT_STARTED", "exam_start_time": exam["exam_start_time"].isoformat()},
+                {"code": "EXAM_NOT_STARTED", "exam_start_time": row["exam_start_time"].isoformat()},
             )
-        grace = int(exam.get("grace_minutes") or 0)
+        grace = int(row["grace_minutes"] or 0)
         if grace > 0:
             login_deadline = start_dt + timedelta(minutes=grace)
             if now > login_deadline:
@@ -77,32 +82,35 @@ async def student_login(body: dict, request: Request, db=Depends(get_db)):
                     {"code": "EXAM_LOGIN_CLOSED", "login_deadline": login_deadline.isoformat()},
                 )
 
+    exam_id = row["exam_id_e"]
+    exam_name = row["exam_name_e"]
+
     token = create_token(
         {
             "sub": roll,
             "role": "student",
-            "exam_id": exam["id"],
-            "centre_id": student["centre_id"],
-            "paper_set": student["paper_set"],
-            "stream": student["stream"],
-            "student_id": student["id"],
+            "exam_id": exam_id,
+            "centre_id": row["centre_id"],
+            "paper_set": row["paper_set"],
+            "stream": row["stream"],
+            "student_id": row["id"],
         },
-        expires_minutes=int(exam["exam_duration_minutes"] or 180) + 60,
+        expires_minutes=int(row["exam_duration_minutes"] or 180) + 60,
     )
 
     return {
         "token": token,
         "student": {
             "roll_number": roll,
-            "name_en": student["name_en"],
-            "name_ar": student["name_ar"],
-            "stream": student["stream"],
-            "course": student["course"],
-            "centre_id": student["centre_id"],
-            "paper_set": student["paper_set"],
-            "status": student["status"],
-            "exam_id": exam["id"],
-            "exam_name": exam["name"],
+            "name_en": row["name_en"],
+            "name_ar": row["name_ar"],
+            "stream": row["stream"],
+            "course": row["course"],
+            "centre_id": row["centre_id"],
+            "paper_set": row["paper_set"],
+            "status": row["status"],
+            "exam_id": exam_id,
+            "exam_name": exam_name,
         },
     }
 

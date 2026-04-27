@@ -641,6 +641,18 @@ async def delete_student(roll_number: str, payload=Depends(verify_superadmin_tok
     return {"deleted": True}
 
 
+@router.delete("/students")
+async def bulk_delete_students(body: dict, payload=Depends(verify_superadmin_token), db=Depends(get_db)):
+    rolls = [str(r).upper() for r in body.get("rolls", [])]
+    if not rolls:
+        raise HTTPException(400, "rolls required")
+    result = await db.execute(
+        "DELETE FROM students WHERE roll_number = ANY($1::text[])", rolls
+    )
+    deleted = int(result.split()[-1]) if result else 0
+    return {"deleted": deleted}
+
+
 @router.get("/students/{roll_number}/answer-timeline")
 async def get_answer_timeline(roll_number: str, payload=Depends(verify_admin_token), db=Depends(get_db)):
     """Returns per-question answer timestamps for a student — used for the Timeline tab."""
