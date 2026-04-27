@@ -61,12 +61,8 @@ export default function Dashboard() {
   const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
   const [examPickerOpen, setExamPickerOpen] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
-  const [viewingMap, setViewingMap] = useState<Record<string, number>>({});
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>([]);
-  const [disconnectedMap, setDisconnectedMap] = useState<
-    Record<string, { reason: string; at: string }>
-  >({});
   const wsRef = useRef<WebSocket | null>(null);
   const handleWsMessageRef = useRef<(msg: Record<string, unknown>) => void>(() => {});
 
@@ -106,9 +102,15 @@ export default function Dashboard() {
         navigate("/admin", { replace: true });
       }
     };
+    // Poll student progress every 10 minutes
+    const pollId = setInterval(() => {
+      loadStudentsAndCentres(selectedExamId ?? null);
+    }, 600_000);
+
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       wsRef.current?.close();
+      clearInterval(pollId);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
@@ -180,35 +182,6 @@ export default function Dashboard() {
 
   const handleWsMessage = useCallback(
     (msg: Record<string, unknown>) => {
-      if (msg.type === "student_viewing") {
-        setViewingMap((prev) => ({
-          ...prev,
-          [msg.roll as string]: msg.question_index as number,
-        }));
-        return;
-      }
-
-      if (msg.type === "student_disconnect") {
-        const roll = msg.roll as string;
-        const reason = msg.reason as string;
-        const at = new Date().toISOString();
-        setDisconnectedMap((prev) => ({ ...prev, [roll]: { reason, at } }));
-        setStudents((prev) => {
-          const s = prev.find((s) => s.roll_number === roll);
-          addActivity({
-            id: Math.random().toString(36).slice(2),
-            type: "disconnect",
-            roll,
-            name: s?.name_en,
-            name_ar: s?.name_ar,
-            detail: reason,
-            at,
-          });
-          return prev;
-        });
-        return;
-      }
-
       setStudents((prev) => {
         const idx = prev.findIndex((s) => s.roll_number === msg.roll);
         if (idx === -1) {
@@ -219,24 +192,7 @@ export default function Dashboard() {
         const s = { ...updated[idx] };
         const at = new Date().toISOString();
 
-        if (msg.type === "answer_saved") {
-          const qIdStr = String(msg.q_id);
-          const wasAnswered = !!(s.answers?.[qIdStr]?.trim());
-          if (!wasAnswered) {
-            s.answered_count = Math.min(
-              (s.answered_count || 0) + 1,
-              s.total_questions || 100,
-            );
-          }
-          if (msg.q_id != null) {
-            s.answers = { ...(s.answers || {}), [qIdStr]: (msg.answer as string) || "✓" };
-          }
-          setDisconnectedMap((prev) => {
-            const next = { ...prev };
-            delete next[s.roll_number];
-            return next;
-          });
-        } else if (msg.type === "strike") {
+        if (msg.type === "strike") {
           s.strikes = msg.strikes as number;
           s.status = msg.status as AdminStudent["status"];
           const eventLabel: Record<string, string> = {
@@ -476,9 +432,7 @@ export default function Dashboard() {
               exams={exams}
               onRefresh={loadAll}
               isAdmin={isAdmin}
-              viewingMap={viewingMap}
               activityFeed={activityFeed}
-              disconnectedMap={disconnectedMap}
               passMark={selectedExam?.pass_mark ?? 0}
               questions={questions}
               wsConnected={wsConnected}

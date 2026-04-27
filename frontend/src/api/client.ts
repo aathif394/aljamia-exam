@@ -117,6 +117,9 @@ export const api = {
     saveAnswer: (question_id: number, answer: string) =>
       request<{ saved: boolean }>('POST', '/exam/answer', { question_id, answer }),
 
+    saveAnswersBatch: (answers: { question_id: number; answer: string }[]) =>
+      request<{ saved: number }>('POST', '/exam/answers/batch', { answers }),
+
     submit: () =>
       request<{ submitted: boolean; score: number }>('POST', '/exam/submit'),
 

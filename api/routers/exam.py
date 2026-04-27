@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 import random
@@ -15,7 +16,12 @@ _CONFIG_CACHE = {"data": None, "expiry": 0}
 
 # Per-student question cache: roll_number -> processed question list
 # Questions are deterministic per student (seeded shuffle/watermark), so this is safe.
+# Capped at 1200 entries (~1000 students + headroom) to bound memory usage.
 _QUESTION_CACHE: dict[str, list] = {}
+_QUESTION_CACHE_MAX = 1200
+
+# Limits simultaneous exam starts to prevent thundering herd on DB at T=0
+_START_SEMAPHORE = asyncio.Semaphore(40)
 
 
 def _utcnow() -> datetime:
@@ -117,69 +123,67 @@ async def start_exam(
     #     if _utcnow() < cfg["exam_start_time"].replace(tzinfo=timezone.utc):
     #         raise HTTPException(403, {"code": "EXAM_NOT_STARTED", "exam_start_time": cfg["exam_start_time"].isoformat()})
 
-    exam_id = payload.get("exam_id")
-    cfg = await db.fetchrow(
-        "SELECT exam_start_time, test_mode FROM exams WHERE id = $1",
-        exam_id,
-    )
-    if cfg and not cfg["test_mode"]:
-        if cfg["exam_start_time"] is None:
-            raise HTTPException(503, "Exam not scheduled")
-        if _utcnow() < cfg["exam_start_time"].replace(tzinfo=timezone.utc):
-            raise HTTPException(
-                403,
-                {
-                    "code": "EXAM_NOT_STARTED",
-                    "exam_start_time": cfg["exam_start_time"].isoformat(),
-                },
-            )
-
-    # One trip to the DB does everything
-    result = await db.fetchval(
-        "SELECT start_student_exam($1, $2, $3, $4)",
-        payload["sub"],
-        payload["stream"],
-        payload["paper_set"],
-        _client_ip(request),
-    )
-
-    # FIX: result is now automatically a dict thanks to the database.py codecs
-    res_data = result if isinstance(result, (dict, list)) else json.loads(result)
-
-    if "error" in res_data:
-        raise HTTPException(res_data["code"], res_data["error"])
-
-    roll = payload["sub"]
-    questions = _QUESTION_CACHE.get(roll)
-    if questions is None:
-        questions = await _fetch_questions_ordered(db, res_data["question_ids"], roll)
-        _QUESTION_CACHE[roll] = questions
-
-    background_tasks.add_task(
-        broadcast, {"type": "status_change", "roll": roll, "status": "active"}
-    )
-
-    # Return duration and section metadata so the client can set the timer
-    # and show section descriptions on fresh start.
-    duration = 180
-    section_durations: dict = {}
-    section_descriptions: dict = {}
-    section_auto_advance = True
-    if exam_id:
-        exam_row = await db.fetchrow(
-            "SELECT exam_duration_minutes, section_durations, section_descriptions, section_auto_advance FROM exams WHERE id = $1",
+    async with _START_SEMAPHORE:
+        exam_id = payload.get("exam_id")
+        cfg = await db.fetchrow(
+            "SELECT exam_start_time, test_mode FROM exams WHERE id = $1",
             exam_id,
         )
-        if exam_row:
-            duration = exam_row["exam_duration_minutes"]
-            sd = exam_row["section_durations"]
-            section_durations = sd if isinstance(sd, dict) else json.loads(sd or "{}")
-            sdesc = exam_row["section_descriptions"]
-            section_descriptions = (
-                sdesc if isinstance(sdesc, dict) else json.loads(sdesc or "{}")
+        if cfg and not cfg["test_mode"]:
+            if cfg["exam_start_time"] is None:
+                raise HTTPException(503, "Exam not scheduled")
+            if _utcnow() < cfg["exam_start_time"].replace(tzinfo=timezone.utc):
+                raise HTTPException(
+                    403,
+                    {
+                        "code": "EXAM_NOT_STARTED",
+                        "exam_start_time": cfg["exam_start_time"].isoformat(),
+                    },
+                )
+
+        result = await db.fetchval(
+            "SELECT start_student_exam($1, $2, $3, $4)",
+            payload["sub"],
+            payload["stream"],
+            payload["paper_set"],
+            _client_ip(request),
+        )
+
+        res_data = result if isinstance(result, (dict, list)) else json.loads(result)
+
+        if "error" in res_data:
+            raise HTTPException(res_data["code"], res_data["error"])
+
+        roll = payload["sub"]
+        questions = _QUESTION_CACHE.get(roll)
+        if questions is None:
+            questions = await _fetch_questions_ordered(db, res_data["question_ids"], roll)
+            if len(_QUESTION_CACHE) < _QUESTION_CACHE_MAX:
+                _QUESTION_CACHE[roll] = questions
+
+        background_tasks.add_task(
+            broadcast, {"type": "status_change", "roll": roll, "status": "active"}
+        )
+
+        duration = 180
+        section_durations: dict = {}
+        section_descriptions: dict = {}
+        section_auto_advance = True
+        if exam_id:
+            exam_row = await db.fetchrow(
+                "SELECT exam_duration_minutes, section_durations, section_descriptions, section_auto_advance FROM exams WHERE id = $1",
+                exam_id,
             )
-            section_auto_advance = exam_row["section_auto_advance"]
-    print(section_descriptions)
+            if exam_row:
+                duration = exam_row["exam_duration_minutes"]
+                sd = exam_row["section_durations"]
+                section_durations = sd if isinstance(sd, dict) else json.loads(sd or "{}")
+                sdesc = exam_row["section_descriptions"]
+                section_descriptions = (
+                    sdesc if isinstance(sdesc, dict) else json.loads(sdesc or "{}")
+                )
+                section_auto_advance = exam_row["section_auto_advance"]
+
     return {
         **res_data,
         "questions": questions,
@@ -231,7 +235,8 @@ async def get_questions(
     questions = _QUESTION_CACHE.get(roll)
     if questions is None:
         questions = await _fetch_questions_ordered(db, q_order, roll)
-        _QUESTION_CACHE[roll] = questions
+        if len(_QUESTION_CACHE) < _QUESTION_CACHE_MAX:
+            _QUESTION_CACHE[roll] = questions
 
     # Get exam config for duration and section timing
     duration = await _get_cached_config(db)
@@ -357,7 +362,6 @@ async def _fetch_questions_ordered(db, q_ids: list, roll_number: str, include_co
 @router.post("/answer")
 async def save_answer(
     body: dict,
-    background_tasks: BackgroundTasks,
     payload: dict = Depends(verify_student_token),
     db=Depends(get_db),
 ):
@@ -398,12 +402,49 @@ async def save_answer(
     if saved is None:
         raise HTTPException(400, "Exam not active")
 
-    # Use BackgroundTasks for WebSockets to hit <500ms targets
-    background_tasks.add_task(
-        broadcast, {"type": "answer_saved", "roll": roll, "q_id": q_id, "answer": answer}
+    return {"saved": True}
+
+
+@router.post("/answers/batch")
+async def save_answers_batch(
+    body: dict,
+    payload: dict = Depends(verify_student_token),
+    db=Depends(get_db),
+):
+    student_id = payload["student_id"]
+    answers_list = body.get("answers", [])
+    if not answers_list:
+        return {"saved": 0}
+
+    active = await db.fetchval(
+        "SELECT id FROM students WHERE id = $1 AND status IN ('active', 'flagged')",
+        student_id,
+    )
+    if active is None:
+        raise HTTPException(400, "Exam not active")
+
+    now = _utcnow()
+    q_ids = [int(a["question_id"]) for a in answers_list]
+    answer_texts = [str(a.get("answer") or "") for a in answers_list]
+
+    await db.execute(
+        """
+        INSERT INTO student_answers (student_id, question_id, answer_text, updated_at)
+        SELECT $1, q_id, ans, $4
+        FROM unnest($2::int[], $3::text[]) AS t(q_id, ans)
+        ON CONFLICT (student_id, question_id)
+        DO UPDATE SET answer_text = EXCLUDED.answer_text, updated_at = EXCLUDED.updated_at
+        """,
+        student_id, q_ids, answer_texts, now,
     )
 
-    return {"saved": True}
+    answers_json = json.dumps({str(a["question_id"]): str(a.get("answer") or "") for a in answers_list})
+    await db.execute(
+        "UPDATE students SET answers = COALESCE(answers, '{}') || $1::jsonb WHERE id = $2",
+        answers_json, student_id,
+    )
+
+    return {"saved": len(answers_list)}
 
 
 @router.post("/submit")

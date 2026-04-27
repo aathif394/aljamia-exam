@@ -57,11 +57,7 @@ export default function ExamPage() {
   const [examStartTime, setExamStartTime] = useState<Date | null>(null);
   const [examOpen, setExamOpen] = useState(true);
   const [countdown, setCountdown] = useState("");
-  const saveTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
-  const pendingAnswers = useRef<Map<number, string>>(new Map());
   const mainRef = useRef<HTMLElement>(null);
-  const monitorWsRef = useRef<WebSocket | null>(null);
-  const currentIndexRef = useRef(0);
   const submittingRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error" | null>(null);
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,7 +90,7 @@ export default function ExamPage() {
     durationMinutes,
   );
 
-  // ── Auto-save every 15 s (backup for network blips) ────────────────────────
+  // ── Batch sync every 5 min — answers stored locally, flushed periodically ──
   const lastAutoSaved = useRef<Record<string, string>>({});
 
   function showSaveStatus(status: "saved" | "error") {
@@ -112,15 +108,14 @@ export default function ExamPage() {
       const unsaved = Object.entries(current).filter(([k, v]) => v && v !== lastAutoSaved.current[k]);
       if (unsaved.length === 0) return;
       setSaveStatus("saving");
-      Promise.all(
-        unsaved.map(([k, v]) =>
-          api.student.saveAnswer(Number(k), v).then(() => {
-            lastAutoSaved.current[k] = v;
-          })
-        )
-      ).then(() => showSaveStatus("saved"))
-       .catch(() => showSaveStatus("error"));
-    }, 15_000);
+      const batch = unsaved.map(([k, v]) => ({ question_id: Number(k), answer: v }));
+      api.student.saveAnswersBatch(batch)
+        .then(() => {
+          unsaved.forEach(([k, v]) => { lastAutoSaved.current[k] = v; });
+          showSaveStatus("saved");
+        })
+        .catch(() => showSaveStatus("error"));
+    }, 300_000); // 5 minutes
     return () => clearInterval(id);
   }, [started, status]);
 
@@ -279,42 +274,6 @@ export default function ExamPage() {
     return () => clearInterval(id);
   }, [examStartTime, examOpen]);
 
-  currentIndexRef.current = currentIndex;
-
-  useEffect(() => {
-    if (!started || status === "submitted") return;
-    let active = true;
-    let retryDelay = 1000;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-
-    function connect() {
-      if (!active) return;
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      const proto = location.protocol === "https:" ? "wss" : "ws";
-      const ws = new WebSocket(`${proto}://${location.host}/ws/student?token=${token}`);
-      ws.onopen = () => {
-        retryDelay = 1000;
-        ws.send(JSON.stringify({ type: "viewing", question_index: currentIndexRef.current }));
-      };
-      ws.onclose = (e) => {
-        monitorWsRef.current = null;
-        if (active && e.code !== 1000) {
-          retryTimer = setTimeout(connect, retryDelay);
-          retryDelay = Math.min(retryDelay * 2, 30_000);
-        }
-      };
-      monitorWsRef.current = ws;
-    }
-
-    connect();
-    return () => {
-      active = false;
-      if (retryTimer) clearTimeout(retryTimer);
-      monitorWsRef.current?.close(1000);
-      monitorWsRef.current = null;
-    };
-  }, [started, status]);
 
   const handleStart = async () => {
     setStartLoading(true);
@@ -371,18 +330,6 @@ export default function ExamPage() {
       const q = questions[currentIndex];
       if (!q) return;
       setAnswer(q.id, answer);
-      pendingAnswers.current.set(q.id, answer);
-      const existing = saveTimers.current.get(q.id);
-      if (existing) clearTimeout(existing);
-      const timer = setTimeout(() => {
-        saveTimers.current.delete(q.id);
-        pendingAnswers.current.delete(q.id);
-        setSaveStatus("saving");
-        api.student.saveAnswer(q.id, answer)
-          .then(() => showSaveStatus("saved"))
-          .catch(() => showSaveStatus("error"));
-      }, 300);
-      saveTimers.current.set(q.id, timer);
     },
     [questions, currentIndex, setAnswer],
   );
@@ -398,18 +345,14 @@ export default function ExamPage() {
     setLoading(true);
     setSubmitError(null);
     try {
-      // Flush any buffered answer saves before submitting
-      const flushPromises: Promise<unknown>[] = [];
-      for (const [qId, timer] of saveTimers.current) {
-        clearTimeout(timer);
-        const answer = pendingAnswers.current.get(qId);
-        if (answer !== undefined) {
-          flushPromises.push(api.student.saveAnswer(qId, answer).catch(() => {}));
-        }
+      // Flush all unsaved answers before submitting
+      const current = useExamStore.getState().answers;
+      const unsaved = Object.entries(current)
+        .filter(([k, v]) => v?.trim() && v !== lastAutoSaved.current[k])
+        .map(([k, v]) => ({ question_id: Number(k), answer: v }));
+      if (unsaved.length > 0) {
+        await api.student.saveAnswersBatch(unsaved).catch(() => {});
       }
-      saveTimers.current.clear();
-      pendingAnswers.current.clear();
-      if (flushPromises.length > 0) await Promise.all(flushPromises);
 
       await api.student.submit();
       setStatus("submitted");
@@ -450,7 +393,6 @@ export default function ExamPage() {
         setSectionTransition(newQ.section);
       }
       setCurrentIndex(newIdx);
-      monitorWsRef.current?.send(JSON.stringify({ type: "viewing", question_index: newIdx }));
       requestAnimationFrame(() => {
         mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
       });
